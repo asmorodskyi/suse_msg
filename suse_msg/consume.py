@@ -27,33 +27,13 @@ config = {
     "irc": {
         "server": "irc.suse.de",
         "port": 6697,
-        "nickname": "hermes",
+        "nickname": "asmorodskyi_hermes",
         "join_channels": True
     },
     "routing": {
-        "#openqa-test": [
-            #("suse.openqa.#", lambda t, m: not t.endswith('comment.create') or "group_id" in m),
-            #("*.openqa.comment.#", lambda ...),
-            "*.openqa.comment.*",
-            #("opensuse.openqa.#", lambda t, m: "foo" in m),
-            #"suse.tumblesle.#",
-        ],
-        "#qa-review": [
-            ("*.openqa.comment.create", lambda t, m: m.get('group_id')),
-            "suse.tumblesle.#",
-        ],
-        "#openqa-events": [
-            "suse.openqa.#",
-            "opensuse.openqa.#",
-            "suse.tumblesle.#",
-        ],
-        "#hpc-builds": [
-            ("suse.openqa.job.done", lambda t, m: m.get('group_id') == 91),
-            ("suse.openqa.job.done", lambda t, m: m.get('group_id') == 71),
-            ("suse.openqa.job.done", lambda t, m: m.get('group_id') == 102),
-            ("suse.openqa.job.done", lambda t, m: m.get('group_id') == 103),
-            ("suse.openqa.job.done", lambda t, m: m.get('group_id') == 104),
-            ("suse.openqa.job.done", lambda t, m: m.get('group_id') == 54 and m.get('TEST').startswith("hpc_"))
+        "#asmorodskyi-notify": [
+            ("suse.openqa.job.done", lambda t, m: m.get('TEST',"").startswith('hpc_')),
+            ("suse.openqa.job.done", lambda t, m: m.get('TEST',"").startswith('wicked_'))
         ]
     }
 }
@@ -76,7 +56,7 @@ def msg_cb(ch, method, properties, body):
         logging.warning("Invalid msg: %r -> %r" % (topic, body))
     else:
         print("%s: %s" % (topic, formatter.fmt(topic, msg, colors='xterm')))
-        ircc.notice(formatter.fmt(topic, msg), router.target_channels(topic, msg))
+        ircc.privmsg(formatter.fmt(topic, msg), router.target_channels(topic, msg))
 
 
 while True:
