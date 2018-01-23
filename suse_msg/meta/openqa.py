@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 
 import re
+
 from suse_msg.meta import BaseProcessor
+
 
 class OpenQAProcessor(BaseProcessor):
     topic_regex = r"(?P<scope>[^.]+)\.openqa\.(?P<object>[^.]+)\.(?P<event>[^.]+)"
@@ -13,21 +15,15 @@ class OpenQAProcessor(BaseProcessor):
         self.event = m.group('event')
 
     def fmt(self, c):
-        s = "openQA %s %s" % (self.object, self.event_past_perfect())
+        s = ""
 
         if self.object == 'job':
+            s = "GROUP %s |TEST %s |" % (self.msg['group_id'], self.msg['TEST'])
             if self.event == 'done':
-                s += " with result "
                 s += self.colored_job_result(c)
             s += ": " + self.job_url()
-        elif self.object == 'comment':
-            if self.is_group_event():
-                s += " on job group "
-            if self.is_job_event():
-                s += " on job "
-            s += "by %(user)s" % self.msg
-            if self.event != 'delete':
-                s += ": " + self.comment_url()
+        else:
+            s += "UNSUPPORTED!"
         return s
 
     def colored_job_result(self, c):
@@ -54,7 +50,7 @@ class OpenQAProcessor(BaseProcessor):
             "duplicate": "duplicated",
             "done": "finished",
         }.get(self.event, '%sed' % self.event)
-        
+
     def job_url(self):
         return self.base_url() + "t%i" % int(self.msg['id'])
 

@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 
-import irc.client
 import ssl
 import sys
 import threading
+
+import irc.client
 
 
 class IRCClient(irc.client.SimpleIRCClient):

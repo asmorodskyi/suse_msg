@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
+import inspect
 import os
 from importlib import import_module
-import inspect
 
 
 class BaseProcessor(object):

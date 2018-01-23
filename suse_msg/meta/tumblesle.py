@@ -1,8 +1,8 @@
 import logging
 import re
 from collections import deque
-from suse_msg.meta import BaseProcessor
 
+from suse_msg.meta import BaseProcessor
 
 logging.basicConfig(level=logging.INFO)
 

@@ -1,14 +1,12 @@
 #!/usr/bin/python3
 
-import pika
-import sys
 import json
 import logging
-import time
-import requests
-
 import os
 import sys
+import time
+
+import pika
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + '/..'))
 from suse_msg.ircclient import IRCClient

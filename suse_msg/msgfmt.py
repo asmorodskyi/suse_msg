@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 
-import re
 import logging
+import re
+
 import suse_msg.meta as meta
+
 
 def format_xterm(text, fg=None, bg=None):
     def seq(s):
