@@ -43,7 +43,7 @@ The server admin created a permanent exchange in the setup above.
 import pika, json
 connection = pika.BlockingConnection(pika.URLParameters("amqp://openqa:secret@kazhua.suse.de"))
 channel = connection.channel()
-channel.exchange_declare(exchange='pubsub', type='topic', passive=True, durable=True)
+channel.exchange_declare(exchange='pubsub', exchange_type='topic', passive=True, durable=True)
 def send_msg(topic, msg): 
 	json_msg = json.dumps(msg)
 	channel.basic_publish(exchange='pubsub', routing_key=topic, body=json_msg)
@@ -68,7 +68,7 @@ other users from accessing your queue.
 import pika, json
 connection = pika.BlockingConnection(pika.URLParameters("amqp://tux:linux@kazhua.suse.de"))
 channel = connection.channel()
-channel.exchange_declare(exchange='pubsub', type='topic', passive=True, durable=True)
+channel.exchange_declare(exchange='pubsub', exchange_type='topic', passive=True, durable=True)
 result = channel.queue_declare(exclusive=True)
 queue_name = result.method.queue
 binding_keys = ['opensuse.openqa.#', '*.openqa.comment.create']

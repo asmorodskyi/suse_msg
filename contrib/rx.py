@@ -5,7 +5,7 @@ import sys
 connection = pika.BlockingConnection(pika.URLParameters("amqps://opensuse:opensuse@proxy-opensuse.suse.de?heartbeat_interval=5"))
 channel = connection.channel()
 
-channel.exchange_declare(exchange='pubsub', type='topic', passive=True, durable=True)
+channel.exchange_declare(exchange='pubsub', exchange_type='topic', passive=True, durable=True)
 
 result = channel.queue_declare(exclusive=True)
 queue_name = result.method.queue

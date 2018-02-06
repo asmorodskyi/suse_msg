@@ -6,7 +6,7 @@ import sys
 connection = pika.BlockingConnection(pika.URLParameters("amqps://openqa:secret@proxy-opensuse.suse.de?heartbeat_interval=5"))
 channel = connection.channel()
 
-channel.exchange_declare(exchange='pubsub', type='topic', passive=True, durable=True)
+channel.exchange_declare(exchange='pubsub', exchange_type='topic', passive=True, durable=True)
 
 routing_key = sys.argv[1] if len(sys.argv) > 1 else 'anonymous.info'
 message = ' '.join(sys.argv[2:]) or 'Hello World!'
