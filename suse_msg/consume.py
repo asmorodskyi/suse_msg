@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import time
+import fcntl
 
 import pika
 
@@ -59,6 +60,13 @@ def msg_cb(ch, method, properties, body):
 
 while True:
     try:
+        pid_file = '/tmp/suse_msg.lock'
+        fp = open(pid_file, 'w')
+        try:
+            logging.info("Check if another instance is running ....")
+            fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except IOError:
+            sys.exit(0)
         logging.info("Connecting to AMQP server")
         connection = pika.BlockingConnection(pika.URLParameters(config['amqp']['server']))
         channel = connection.channel()
