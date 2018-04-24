@@ -3,7 +3,7 @@
 import pika
 import sys
 
-connection = pika.BlockingConnection(pika.URLParameters("amqps://openqa:secret@proxy-opensuse.suse.de?heartbeat_interval=5"))
+connection = pika.BlockingConnection(pika.URLParameters("amqps://opensuse:opensuse@rabbit.opensuse.org?heartbeat_interval=5"))
 channel = connection.channel()
 
 channel.exchange_declare(exchange='pubsub', exchange_type='topic', passive=True, durable=True)

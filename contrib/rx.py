@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+
 import pika
 import sys
 
-connection = pika.BlockingConnection(pika.URLParameters("amqps://opensuse:opensuse@proxy-opensuse.suse.de?heartbeat_interval=5"))
+connection = pika.BlockingConnection(pika.URLParameters("amqps://opensuse:opensuse@rabbit.opensuse.org?heartbeat_interval=5"))
 channel = connection.channel()
 
 channel.exchange_declare(exchange='pubsub', exchange_type='topic', passive=True, durable=True)
@@ -13,6 +14,7 @@ queue_name = result.method.queue
 binding_keys = sys.argv[1:]
 if not binding_keys:
     sys.stderr.write("Usage: %s [binding_key]...\n" % sys.argv[0])
+    sys.stderr.write("\nTry using '#' as binding_key to get all events\n")
     sys.exit(1)
 
 for binding_key in binding_keys:
