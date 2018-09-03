@@ -16,6 +16,7 @@ from suse_msg.msgfmt import MsgFormatter
 
 logging.basicConfig(level=logging.INFO)
 
+my_osd_groups = [169,170,130,117]
 
 config = {
     "amqp": {
@@ -31,8 +32,7 @@ config = {
     },
     "routing": {
         "#asmorodskyi-notify": [
-            ("suse.openqa.job.done", lambda t, m: m.get('TEST',"").startswith('hpc_')),
-            ("suse.openqa.job.done", lambda t, m: m.get('TEST',"").startswith('wicked_'))
+            ("suse.openqa.job.done", lambda t, m: m.get('result',"") == "failed" and m.get('group_id',"") in my_osd_groups)
         ]
     }
 }
