@@ -32,7 +32,8 @@ config = {
     },
     "routing": {
         "#asmorodskyi-notify": [
-            ("suse.openqa.job.done", lambda t, m: m.get('result',"") == "failed" and m.get('group_id',"") in my_osd_groups)
+            ("suse.openqa.job.done", lambda t, m: m.get('result',"") == "failed" and m.get('group_id',"") in my_osd_groups),
+            ("suse.openqa.job.done", lambda t, m: m.get('result',"") == "failed" and m.get('TEST') == "trinity")
         ]
     }
 }
