@@ -19,17 +19,6 @@ logging.basicConfig(level=logging.INFO)
 my_osd_groups = [169,170,130,117]
 
 config = {
-    "amqp": {
-        "server": "amqps://suse:suse@rabbit.suse.de",
-        "exchange": "pubsub",
-        "auto_reconnect": 5
-    },
-    "irc": {
-        "server": "irc.suse.de",
-        "port": 6697,
-        "nickname": "asmorodskyi_hermes",
-        "join_channels": True
-    },
     "routing": {
         "#asmorodskyi-notify": [
             ("suse.openqa.job.done", lambda t, m: m.get('result',"") == "failed" and m.get('group_id',"") in my_osd_groups),
@@ -41,11 +30,9 @@ config = {
 
 router = Router(config['routing'])
 formatter = MsgFormatter()
+amqp_server = "amqps://suse:suse@rabbit.suse.de"
 
-
-join_channels = router.channels if config['irc']['join_channels'] else []
-ircc = IRCClient(config['irc']['server'], config['irc']['port'], config['irc']['nickname'], join_channels)
-
+ircc = IRCClient("irc.suse.de", 6697, "asmorodskyi_hermes", router.channels)
 
 def msg_cb(ch, method, properties, body):
     topic = method.routing_key
@@ -69,16 +56,16 @@ while True:
         except IOError:
             sys.exit(0)
         logging.info("Connecting to AMQP server")
-        connection = pika.BlockingConnection(pika.URLParameters(config['amqp']['server']))
+        connection = pika.BlockingConnection(pika.URLParameters(amqp_server))
         channel = connection.channel()
 
-        channel.exchange_declare(exchange=config['amqp']['exchange'], exchange_type='topic', passive=True, durable=True)
+        channel.exchange_declare(exchange="pubsub", exchange_type='topic', passive=True, durable=True)
 
         result = channel.queue_declare(exclusive=True)
         queue_name = result.method.queue
 
         for binding_key in router.keys:
-            channel.queue_bind(exchange=config['amqp']['exchange'], queue=queue_name, routing_key=binding_key)
+            channel.queue_bind(exchange="pubsub", queue=queue_name, routing_key=binding_key)
 
         channel.basic_consume(msg_cb, queue=queue_name, no_ack=True)
 
@@ -86,7 +73,4 @@ while True:
         channel.start_consuming()
     except pika.exceptions.AMQPConnectionError as e:
         logging.warning("AMQP Connection failed: %s" % e)
-        if config['amqp']['auto_reconnect']:
-            time.sleep(config['amqp']['auto_reconnect'])
-        else:
-            raise
+        time.sleep(5)
