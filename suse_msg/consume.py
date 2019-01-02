@@ -35,6 +35,7 @@ if args.config == 'osd':
     }
     amqp_server = "amqps://suse:suse@rabbit.suse.de"
     bot_name = "hermes_osd"
+    pid_file = '/tmp/suse_msg_osd.lock'
 else:
     config = {
         "routing": {
@@ -44,8 +45,9 @@ else:
             ]
         }
     }
-    amqp_server = "amqps://N/A"
+    amqp_server = "amqps://opensuse:opensuse@rabbit.opensuse.org"
     bot_name = "hermes_o3"
+    pid_file = '/tmp/suse_msg_o3.lock'
 
 
 router = Router(config['routing'])
@@ -69,7 +71,6 @@ def msg_cb(ch, method, properties, body):
 
 while True:
     try:
-        pid_file = '/tmp/suse_msg.lock'
         fp = open(pid_file, 'w')
         try:
             logging.info("Check if another instance is running ....")
