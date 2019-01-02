@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import argparse
 import sys
 import time
 import fcntl
@@ -15,24 +16,43 @@ from suse_msg.router import Router
 from suse_msg.msgfmt import MsgFormatter
 
 logging.basicConfig(level=logging.INFO)
+parser = argparse.ArgumentParser()
+parser.add_argument('--config', choices=['osd', 'o3'], required=True)
+args = parser.parse_args()
 
-my_osd_groups = [169,170,130,117]
+if args.config == 'osd':
+    my_osd_groups = [169, 170, 130, 117]
 
-config = {
-    "routing": {
-        "#asmorodskyi-notify": [
-            ("suse.openqa.job.done", lambda t, m: m.get('result',"") == "failed" and m.get('group_id',"") in my_osd_groups),
-            ("suse.openqa.job.done", lambda t, m: m.get('result',"") == "failed" and m.get('TEST') == "trinity")
-        ]
+    config = {
+        "routing": {
+            "#asmorodskyi-notify": [
+                ("suse.openqa.job.done", lambda t, m: m.get('result', "")
+                 == "failed" and m.get('group_id', "") in my_osd_groups),
+                ("suse.openqa.job.done", lambda t, m: m.get('result', "")
+                 == "failed" and m.get('TEST') == "trinity")
+            ]
+        }
     }
-}
+    amqp_server = "amqps://suse:suse@rabbit.suse.de"
+    bot_name = "hermes_osd"
+else:
+    config = {
+        "routing": {
+            "#asmorodskyi-notify": [
+                ("suse.openqa.job.done", lambda t, m: m.get('result', "")
+                 == "failed" and m.get('TEST').startswith("wicked_basic_"))
+            ]
+        }
+    }
+    amqp_server = "amqps://N/A"
+    bot_name = "hermes_o3"
 
 
 router = Router(config['routing'])
 formatter = MsgFormatter()
-amqp_server = "amqps://suse:suse@rabbit.suse.de"
 
-ircc = IRCClient("irc.suse.de", 6697, "asmorodskyi_hermes", router.channels)
+ircc = IRCClient("irc.suse.de", 6697, bot_name, router.channels)
+
 
 def msg_cb(ch, method, properties, body):
     topic = method.routing_key
@@ -43,7 +63,8 @@ def msg_cb(ch, method, properties, body):
         logging.warning("Invalid msg: %r -> %r" % (topic, body))
     else:
         print("%s: %s" % (topic, formatter.fmt(topic, msg, colors='xterm')))
-        ircc.privmsg(formatter.fmt(topic, msg), router.target_channels(topic, msg))
+        ircc.privmsg(formatter.fmt(topic, msg),
+                     router.target_channels(topic, msg))
 
 
 while True:
@@ -59,13 +80,15 @@ while True:
         connection = pika.BlockingConnection(pika.URLParameters(amqp_server))
         channel = connection.channel()
 
-        channel.exchange_declare(exchange="pubsub", exchange_type='topic', passive=True, durable=True)
+        channel.exchange_declare(
+            exchange="pubsub", exchange_type='topic', passive=True, durable=True)
 
         result = channel.queue_declare(exclusive=True)
         queue_name = result.method.queue
 
         for binding_key in router.keys:
-            channel.queue_bind(exchange="pubsub", queue=queue_name, routing_key=binding_key)
+            channel.queue_bind(exchange="pubsub",
+                               queue=queue_name, routing_key=binding_key)
 
         channel.basic_consume(msg_cb, queue=queue_name, no_ack=True)
 
