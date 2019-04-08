@@ -21,8 +21,7 @@ parser.add_argument('--config', choices=['osd', 'o3'], required=True)
 args = parser.parse_args()
 
 if args.config == 'osd':
-    my_osd_groups = [169, 170, 130, 117]
-
+    my_osd_groups = [170, 117]
     config = {
         "routing": {
             "#asmorodskyi-notify": [
