@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from suse_msg.router import Router
 import json
 import logging
 import os
@@ -8,51 +9,40 @@ import sys
 import time
 import fcntl
 
+import smtplib
 import pika
-
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + '/..'))
-from suse_msg.ircclient import IRCClient
-from suse_msg.router import Router
-from suse_msg.msgfmt import MsgFormatter
 
 logging.basicConfig(level=logging.INFO)
 parser = argparse.ArgumentParser()
-parser.add_argument('--config', choices=['osd', 'o3'], required=True)
+parser.add_argument('--server', choices=['osd', 'o3'], required=True)
 args = parser.parse_args()
 
-if args.config == 'osd':
+if args.server == 'osd':
     my_osd_groups = [170, 117]
-    config = {
-        "routing": {
-            "#asmorodskyi-notify": [
-                ("suse.openqa.job.done", lambda t, m: m.get('result', "")
-                 == "failed" and m.get('group_id', "") in my_osd_groups),
-                ("suse.openqa.job.done", lambda t, m: m.get('result', "")
-                 == "failed" and m.get('TEST') == "trinity")
-            ]
-        }
-    }
+    rules = [
+        ("suse.openqa.job.done", lambda t, m: m.get('result', "")
+         == "failed" and m.get('group_id', "") in my_osd_groups),
+        ("suse.openqa.job.done", lambda t, m: m.get('result', "")
+         == "failed" and m.get('TEST') == "trinity")
+    ]
     amqp_server = "amqps://suse:suse@rabbit.suse.de"
     bot_name = "hermes_osd"
     pid_file = '/tmp/suse_msg_osd.lock'
 else:
-    config = {
-        "routing": {
-            "#asmorodskyi-notify": [
-                ("suse.openqa.job.done", lambda t, m: m.get('result', "")
-                 == "failed" and m.get('TEST').startswith("wicked_basic_"))
-            ]
-        }
-    }
-    amqp_server = "amqps://opensuse:opensuse@rabbit.opensuse.org"
+    rules = [
+        ("suse.openqa.job.done", lambda t, m: m.get('result', "")
+         == "failed" and m.get('TEST').startswith("wicked_basic_")),
+         ("suse.openqa.job.done", lambda t, m: True )
+    ]
+    amqp_server = "amqps://opensuse:opensuse@rabbit.opensuse.org?heartbeat_interval=5"
     bot_name = "hermes_o3"
     pid_file = '/tmp/suse_msg_o3.lock'
 
 
-router = Router(config['routing'])
-formatter = MsgFormatter()
-
-ircc = IRCClient("irc.suse.de", 6697, bot_name, router.channels)
+router = Router(rules)
+sender = 'asmorodskyi@suse.com'
+receivers = ['asmorodskyi@suse.com']
+smtpObj = smtplib.SMTP('relay.suse.de', 25)
 
 
 def msg_cb(ch, method, properties, body):
@@ -60,12 +50,19 @@ def msg_cb(ch, method, properties, body):
     try:
         body = body.decode("UTF-8")
         msg = json.loads(body)
+        if router.is_matched(topic,msg):
+            print("%s: %s" % (topic, msg))
+            email = '''\
+Subject: [Openqa-Notify] {subject}
+From: {_from}
+To: {_to}
+
+
+{message}
+'''.format(subject=topic, _from=sender, _to=receivers, message=msg)
+            smtpObj.sendmail(sender, receivers, email)
     except ValueError:
         logging.warning("Invalid msg: %r -> %r" % (topic, body))
-    else:
-        print("%s: %s" % (topic, formatter.fmt(topic, msg, colors='xterm')))
-        ircc.privmsg(formatter.fmt(topic, msg),
-                     router.target_channels(topic, msg))
 
 
 while True:
