@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-from suse_msg.router import Router
 import json
 import logging
 import os
@@ -11,15 +10,21 @@ import fcntl
 
 import smtplib
 import pika
+import re
 
 logging.basicConfig(level=logging.INFO)
 parser = argparse.ArgumentParser()
 parser.add_argument('--server', choices=['osd', 'o3'], required=True)
 args = parser.parse_args()
+keys = set()
+rules_compiled = []
+sender = 'asmorodskyi@suse.com'
+receivers = ['asmorodskyi@suse.com']
+smtpObj = smtplib.SMTP('relay.suse.de', 25)
 
 if args.server == 'osd':
     my_osd_groups = [170, 117]
-    rules = [
+    rules_defined = [
         ("suse.openqa.job.done", lambda t, m: m.get('result', "")
          == "failed" and m.get('group_id', "") in my_osd_groups),
         ("suse.openqa.job.done", lambda t, m: m.get('result', "")
@@ -29,7 +34,7 @@ if args.server == 'osd':
     bot_name = "hermes_osd"
     pid_file = '/tmp/suse_msg_osd.lock'
 else:
-    rules = [
+    rules_defined = [
         ("suse.openqa.job.done", lambda t, m: m.get('result', "")
          == "failed" and m.get('TEST').startswith("wicked_basic_")),
          ("suse.openqa.job.done", lambda t, m: True )
@@ -38,19 +43,22 @@ else:
     bot_name = "hermes_o3"
     pid_file = '/tmp/suse_msg_o3.lock'
 
+for rule in rules_defined:
+    keys.add(rule[0])
+    rules_compiled.append((re.compile(rule[0].replace('.', '\.').replace('*', '[^.]*').replace('#', '.*')), rule[1]))
 
-router = Router(rules)
-sender = 'asmorodskyi@suse.com'
-receivers = ['asmorodskyi@suse.com']
-smtpObj = smtplib.SMTP('relay.suse.de', 25)
-
+def is_matched(topic, msg):
+    for rule in rules_compiled:
+        rkey, filter_matches = rule
+        if rkey.match(topic) and filter_matches(topic, msg):
+            return True
 
 def msg_cb(ch, method, properties, body):
     topic = method.routing_key
     try:
         body = body.decode("UTF-8")
         msg = json.loads(body)
-        if router.is_matched(topic,msg):
+        if is_matched(topic,msg):
             print("%s: %s" % (topic, msg))
             email = '''\
 Subject: [Openqa-Notify] {subject}
@@ -83,7 +91,7 @@ while True:
         result = channel.queue_declare(exclusive=True)
         queue_name = result.method.queue
 
-        for binding_key in router.keys:
+        for binding_key in keys:
             channel.queue_bind(exchange="pubsub",
                                queue=queue_name, routing_key=binding_key)
 
