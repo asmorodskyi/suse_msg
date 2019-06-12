@@ -35,9 +35,8 @@ if args.server == 'osd':
     pid_file = '/tmp/suse_msg_osd.lock'
 else:
     rules_defined = [
-        ("suse.openqa.job.done", lambda t, m: m.get('result', "")
-         == "failed" and m.get('TEST').startswith("wicked_basic_")),
-         ("suse.openqa.job.done", lambda t, m: True )
+        ("opensuse.openqa.job.done", lambda t, m: m.get('result', "")
+         == "failed" and m.get('TEST').startswith("wicked_basic_"))
     ]
     amqp_server = "amqps://opensuse:opensuse@rabbit.opensuse.org?heartbeat_interval=5"
     bot_name = "hermes_o3"
