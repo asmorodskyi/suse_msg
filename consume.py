@@ -9,6 +9,7 @@ import fcntl
 
 import smtplib
 import pika
+import json
 import re
 
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +22,20 @@ def is_matched(rules, topic, msg):
             return True
 
 
+def groupID_to_name(id):
+    if id == 170 or id == 262:
+        return "Network"
+    else:
+        return id
+
+
 def send_email(topic, msg):
+    if topic == 'suse.openqa.job.done':
+        subj_text = 'SUSE.DE - '
+    else:
+        subj_text = 'openSUSE.ORG - '
+    job_json = json.loads(msg)
+    subj_text += job_json['TEST'] + '-' + job_json['ARCH'] + '-' + groupID_to_name(job_json['group_id'])
     sender = 'asmorodskyi@suse.com'
     receivers = ['asmorodskyi@suse.com']
     smtpObj = smtplib.SMTP('relay.suse.de', 25)
@@ -31,8 +45,11 @@ From: {_from}
 To: {_to}
 
 
-{message}
-'''.format(subject=topic, _from=sender, _to=receivers, message=msg)
+Build={build}
+Flavor={flavor}
+Disk={disk}
+JobID={jobID}
+'''.format(subject=subj_text, _from=sender, _to=receivers, build=job_json['BUILD'], flavor=job_json['FLAVOR'], disk=job_json['HDD_1'], jobID=job_json['id'])
     smtpObj.sendmail(sender, receivers, email)
 
 
