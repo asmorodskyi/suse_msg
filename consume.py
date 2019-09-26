@@ -11,6 +11,7 @@ import smtplib
 import pika
 import json
 import re
+import traceback
 
 logging.basicConfig(level=logging.INFO)
 
@@ -26,7 +27,7 @@ def groupID_to_name(id):
     if id == 170 or id == 262:
         return "Network"
     else:
-        return id
+        return str(id)
 
 
 def send_email(topic, msg):
@@ -34,8 +35,10 @@ def send_email(topic, msg):
         subj_text = 'SUSE.DE - '
     else:
         subj_text = 'openSUSE.ORG - '
-    job_json = json.loads(msg)
-    subj_text += job_json['TEST'] + '-' + job_json['ARCH'] + '-' + groupID_to_name(job_json['group_id'])
+    subj_text += msg['TEST'] + '-' + msg['ARCH'] + '-' + groupID_to_name(msg['group_id'])
+    hdd='None'
+    if 'HDD_1' in msg:
+        hdd = msg['HDD_1']
     sender = 'asmorodskyi@suse.com'
     receivers = ['asmorodskyi@suse.com']
     smtpObj = smtplib.SMTP('relay.suse.de', 25)
@@ -49,7 +52,7 @@ Build={build}
 Flavor={flavor}
 Disk={disk}
 JobID={jobID}
-'''.format(subject=subj_text, _from=sender, _to=receivers, build=job_json['BUILD'], flavor=job_json['FLAVOR'], disk=job_json['HDD_1'], jobID=job_json['id'])
+'''.format(subject=subj_text, _from=sender, _to=receivers, build=msg['BUILD'], flavor=msg['FLAVOR'], disk=hdd, jobID=msg['id'])
     smtpObj.sendmail(sender, receivers, email)
 
 
@@ -59,13 +62,11 @@ args = parser.parse_args()
 rules_compiled = []
 
 if args.server == 'osd':
-    my_osd_groups = [170, 117]
+    my_osd_groups = [170, 262]
     binding_key = "suse.openqa.job.done"
     rules_defined = [
         (binding_key, lambda t, m: m.get('result', "")
-         == "failed" and m.get('group_id', "") in my_osd_groups),
-        (binding_key, lambda t, m: m.get('result', "")
-         == "failed" and m.get('TEST') == "trinity")
+         == "failed" and m.get('group_id', "") in my_osd_groups)
     ]
     amqp_server = "amqps://suse:suse@rabbit.suse.de"
     pid_file = '/tmp/suse_msg_osd.lock'
@@ -112,6 +113,6 @@ while True:
         channel.basic_consume(msg_cb, queue=queue_name, no_ack=True)
         logging.info("Connected")
         channel.start_consuming()
-    except pika.exceptions.AMQPConnectionError as e:
-        logging.warning("AMQP Connection failed: %s" % e)
+    except Exception as e:
+        traceback.print_exc()
         time.sleep(5)
