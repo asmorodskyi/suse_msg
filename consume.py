@@ -62,7 +62,7 @@ args = parser.parse_args()
 rules_compiled = []
 
 if args.server == 'osd':
-    my_osd_groups = [170, 262]
+    my_osd_groups = [262, 219, 274, 275, 276]
     binding_key = "suse.openqa.job.done"
     rules_defined = [
         (binding_key, lambda t, m: m.get('result', "")
@@ -74,7 +74,7 @@ else:
     binding_key = "opensuse.openqa.job.done"
     rules_defined = [
         (binding_key, lambda t, m: m.get('result', "")
-         == "failed" and m.get('TEST').startswith("wicked_basic_"))
+         == "failed" and m.get('TEST').startswith("wicked_"))
     ]
     amqp_server = "amqps://opensuse:opensuse@rabbit.opensuse.org?heartbeat_interval=5"
     pid_file = '/tmp/suse_msg_o3.lock'
