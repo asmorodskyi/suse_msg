@@ -40,7 +40,7 @@ def send_email(topic, msg):
     if 'HDD_1' in msg:
         hdd = msg['HDD_1']
     sender = 'asmorodskyi@suse.com'
-    receivers = ['asmorodskyi@suse.com']
+    receivers = ['asmorodskyi@suse.com', 'cfamullaconrad@suse.de']
     smtpObj = smtplib.SMTP('relay.suse.de', 25)
     email = '''\
 Subject: [Openqa-Notify] {subject}
