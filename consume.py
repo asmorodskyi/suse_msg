@@ -33,9 +33,12 @@ def groupID_to_name(id):
 def send_email(topic, msg):
     if topic == 'suse.openqa.job.done':
         subj_text = 'SUSE.DE - '
+        job_url = 'https://openqa.suse.de/t'
     else:
         subj_text = 'openSUSE.ORG - '
+        job_url = 'https://openqa.opensuse.org/t'
     subj_text += msg['TEST'] + '-' + msg['ARCH'] + '-' + groupID_to_name(msg['group_id'])
+    job_url += msg['id']
     hdd='None'
     if 'HDD_1' in msg:
         hdd = msg['HDD_1']
@@ -51,8 +54,8 @@ To: {_to}
 Build={build}
 Flavor={flavor}
 Disk={disk}
-JobID={jobID}
-'''.format(subject=subj_text, _from=sender, _to=receivers, build=msg['BUILD'], flavor=msg['FLAVOR'], disk=hdd, jobID=msg['id'])
+JobID={jobURL}
+'''.format(subject=subj_text, _from=sender, _to=receivers, build=msg['BUILD'], flavor=msg['FLAVOR'], disk=hdd, jobURL=job_url)
     smtpObj.sendmail(sender, receivers, email)
 
 
