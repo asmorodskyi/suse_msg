@@ -39,7 +39,7 @@ def send_email(topic, msg):
         job_url = 'https://openqa.opensuse.org/t'
     subj_text += msg['TEST'] + '-' + msg['ARCH'] + '-' + groupID_to_name(msg['group_id'])
     job_url += msg['id']
-    hdd='None'
+    hdd = 'None'
     if 'HDD_1' in msg:
         hdd = msg['HDD_1']
     sender = 'asmorodskyi@suse.com'
@@ -79,7 +79,7 @@ else:
         (binding_key, lambda t, m: m.get('result', "")
          == "failed" and m.get('TEST').startswith("wicked_"))
     ]
-    amqp_server = "amqps://opensuse:opensuse@rabbit.opensuse.org?heartbeat_interval=5"
+    amqp_server = "amqps://opensuse:opensuse@rabbit.opensuse.org"
     pid_file = '/tmp/suse_msg_o3.lock'
 
 for rule in rules_defined:
@@ -110,10 +110,10 @@ while True:
         connection = pika.BlockingConnection(pika.URLParameters(amqp_server))
         channel = connection.channel()
         channel.exchange_declare(exchange="pubsub", exchange_type='topic', passive=True, durable=True)
-        result = channel.queue_declare(exclusive=True)
+        result = channel.queue_declare("", exclusive=True)
         queue_name = result.method.queue
         channel.queue_bind(exchange="pubsub", queue=queue_name, routing_key=binding_key)
-        channel.basic_consume(msg_cb, queue=queue_name, no_ack=True)
+        channel.basic_consume(queue_name, msg_cb)
         logging.info("Connected")
         channel.start_consuming()
     except Exception as e:
