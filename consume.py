@@ -37,8 +37,8 @@ def send_email(topic, msg):
     else:
         subj_text = 'openSUSE.ORG - '
         job_url = 'https://openqa.opensuse.org/t'
-    subj_text += msg['TEST'] + '-' + msg['ARCH'] + '-' + groupID_to_name(msg['group_id'])
-    job_url += msg['id']
+    subj_text += "{}-{}-{}".format(msg['TEST'], msg['ARCH'], groupID_to_name(msg['group_id']))
+    job_url += str(msg['id'])
     hdd = 'None'
     if 'HDD_1' in msg:
         hdd = msg['HDD_1']
