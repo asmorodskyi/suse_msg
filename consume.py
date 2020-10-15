@@ -113,7 +113,7 @@ while True:
         result = channel.queue_declare("", exclusive=True)
         queue_name = result.method.queue
         channel.queue_bind(exchange="pubsub", queue=queue_name, routing_key=binding_key)
-        channel.basic_consume(queue_name, msg_cb)
+        channel.basic_consume(queue_name, msg_cb, auto_ack=True)
         logging.info("Connected")
         channel.start_consuming()
     except Exception as e:
