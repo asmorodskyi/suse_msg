@@ -71,7 +71,8 @@ if args.server == 'osd':
         (binding_key, lambda t, m: m.get('result', "")
          == "failed" and m.get('group_id', "") in my_osd_groups)
     ]
-    amqp_server = "amqps://suse:suse@rabbit.suse.de"
+    credentials = pika.PlainCredentials('suse', 'suse')
+    parameters = pika.ConnectionParameters(host='rabbit.suse.de', credentials=credentials)
     pid_file = '/tmp/suse_msg_osd.lock'
 else:
     binding_key = "opensuse.openqa.job.done"
@@ -79,7 +80,8 @@ else:
         (binding_key, lambda t, m: m.get('result', "")
          == "failed" and m.get('TEST').startswith("wicked_"))
     ]
-    amqp_server = "amqps://opensuse:opensuse@rabbit.opensuse.org"
+    credentials = pika.PlainCredentials('opensuse', 'opensuse')
+    parameters = pika.ConnectionParameters(host='rabbit.opensuse.org', credentials=credentials, heartbeat=5)
     pid_file = '/tmp/suse_msg_o3.lock'
 
 for rule in rules_defined:
@@ -107,15 +109,16 @@ while True:
         except IOError:
             sys.exit(0)
         logging.info("Connecting to AMQP server")
-        connection = pika.BlockingConnection(pika.URLParameters(amqp_server))
+        connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
-        channel.exchange_declare(exchange="pubsub", exchange_type='topic', passive=True, durable=True)
-        result = channel.queue_declare("", exclusive=True)
+        channel.exchange_declare(exchange="pubsub", exchange_type='topic')
+        result = channel.queue_declare('', exclusive=True)
         queue_name = result.method.queue
         channel.queue_bind(exchange="pubsub", queue=queue_name, routing_key=binding_key)
-        channel.basic_consume(queue_name, msg_cb, auto_ack=True)
+        channel.basic_consume(queue=queue_name, on_message_callback=msg_cb, auto_ack=True)
         logging.info("Connected")
         channel.start_consuming()
     except Exception as e:
         traceback.print_exc()
+        channel.stop_consuming()
         time.sleep(5)
