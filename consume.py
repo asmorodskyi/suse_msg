@@ -71,8 +71,7 @@ if args.server == 'osd':
         (binding_key, lambda t, m: m.get('result', "")
          == "failed" and m.get('group_id', "") in my_osd_groups)
     ]
-    credentials = pika.PlainCredentials('suse', 'suse')
-    parameters = pika.ConnectionParameters(host='rabbit.suse.de', credentials=credentials)
+    amqp_server = "amqps://suse:suse@rabbit.suse.de"
     pid_file = '/tmp/suse_msg_osd.lock'
 else:
     binding_key = "opensuse.openqa.job.done"
@@ -80,8 +79,7 @@ else:
         (binding_key, lambda t, m: m.get('result', "")
          == "failed" and m.get('TEST').startswith("wicked_"))
     ]
-    credentials = pika.PlainCredentials('opensuse', 'opensuse')
-    parameters = pika.ConnectionParameters(host='rabbit.opensuse.org', credentials=credentials, heartbeat=5)
+    amqp_server = "amqps://opensuse:opensuse@rabbit.opensuse.org"
     pid_file = '/tmp/suse_msg_o3.lock'
 
 for rule in rules_defined:
@@ -109,7 +107,7 @@ while True:
         except IOError:
             sys.exit(0)
         logging.info("Connecting to AMQP server")
-        connection = pika.BlockingConnection(parameters)
+        connection = pika.BlockingConnection(pika.URLParameters(amqp_server))
         channel = connection.channel()
         channel.exchange_declare(exchange="pubsub", exchange_type='topic', passive=True)
         result = channel.queue_declare('', exclusive=True)
@@ -120,5 +118,6 @@ while True:
         channel.start_consuming()
     except Exception as e:
         traceback.print_exc()
-        channel.stop_consuming()
+        if 'channel' in locals():
+            channel.stop_consuming()
         time.sleep(5)
