@@ -111,7 +111,7 @@ while True:
         logging.info("Connecting to AMQP server")
         connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
-        channel.exchange_declare(exchange="pubsub", exchange_type='topic')
+        channel.exchange_declare(exchange="pubsub", exchange_type='topic', passive=True)
         result = channel.queue_declare('', exclusive=True)
         queue_name = result.method.queue
         channel.queue_bind(exchange="pubsub", queue=queue_name, routing_key=binding_key)
